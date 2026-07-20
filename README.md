@@ -1,4 +1,4 @@
-# Veritaserum — Malay Dataset Literature Review
+# Veritaserum - Malay Dataset Literature Review
 
 A corrected literature review of Malay misinformation resources, candidate
 fact-checking sources, Veritaserum's language readiness and a permission-gated
