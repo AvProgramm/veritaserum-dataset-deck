@@ -1,522 +1,487 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fact-Checking Datasets - Literature Review | Veritaserum MCS13</title>
-<style>
-  :root {
-    --bg: #0d0e1a;
-    --panel: #171a2e;
-    --ink: #eef0fa;
-    --muted: #9aa0c4;
-    --accent: #a78bfa;
-    --accent-deep: #4c3a91;
-    --warn: #fcd34d;
-    --good: #4ade80;
-    --card: #1a1e36;
-    --border: #2c3157;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; background: var(--bg); color: var(--ink);
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; overflow: hidden; }
-
-  .deck { height: 100vh; position: relative; }
-  .slide {
-    position: absolute; inset: 0; display: none;
-    flex-direction: column; justify-content: center;
-    padding: 5vh 8vw; opacity: 0; transform: translateY(12px);
-    transition: opacity .45s ease, transform .45s ease;
-  }
-  .slide.active { display: flex; opacity: 1; transform: translateY(0); }
-
-  .kicker { color: var(--accent); font-size: clamp(13px, 1.4vw, 18px);
-    letter-spacing: .18em; text-transform: uppercase; font-weight: 600; margin-bottom: 14px; }
-  h1 { font-size: clamp(30px, 4.6vw, 62px); line-height: 1.08; font-weight: 750;
-    background: linear-gradient(120deg, #eef0fa, #a78bfa); -webkit-background-clip: text;
-    background-clip: text; -webkit-text-fill-color: transparent; }
-  h1.plain { -webkit-text-fill-color: var(--ink); }
-  h2 { font-size: clamp(24px, 3.2vw, 44px); margin-bottom: 24px; font-weight: 700; }
-  .sub { color: var(--muted); font-size: clamp(15px, 1.7vw, 22px); margin-top: 18px; max-width: 62ch; line-height: 1.5; }
-  .sub.wide { max-width: none; }
-
-  ul.points { list-style: none; margin-top: 8px; }
-  ul.points li { position: relative; padding: 9px 0 9px 34px;
-    font-size: clamp(15px, 1.6vw, 22px); line-height: 1.45; color: #d5d9f2; }
-  ul.points li::before { content: "▸"; position: absolute; left: 4px; color: var(--accent); }
-  ul.points li strong { color: var(--ink); }
-
-  .grid { display: grid; gap: 16px; margin-top: 10px; }
-  .g2 { grid-template-columns: 1fr 1fr; }
-  .g3 { grid-template-columns: repeat(3, 1fr); }
-  .g4 { grid-template-columns: repeat(4, 1fr); }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
-  .card h3 { color: var(--accent); font-size: clamp(15px, 1.55vw, 21px); margin-bottom: 10px; }
-  .card p, .card li { color: #c7cdec; font-size: clamp(13px, 1.3vw, 18px); line-height: 1.5; }
-  .card ul { list-style: none; }
-  .card ul li { padding: 4px 0 4px 18px; position: relative; }
-  .card ul li::before { content: "•"; position: absolute; left: 2px; color: var(--accent); }
-  .card.win { border-color: var(--good); }
-  .card.win h3 { color: var(--good); }
-  .card.warn { border-color: var(--warn); }
-  .card.warn h3 { color: var(--warn); }
-
-  .bignum { font-size: clamp(38px, 5.5vw, 82px); font-weight: 800; color: var(--accent); line-height: 1; }
-  .bignum.warn { color: var(--warn); }
-  .bignum.good { color: var(--good); }
-  .biglabel { color: var(--muted); font-size: clamp(13px, 1.4vw, 18px); margin-top: 10px; line-height: 1.45; }
-
-  .tag { display: inline-block; background: var(--accent-deep); color: #efe9ff;
-    border-radius: 999px; padding: 6px 16px; font-size: clamp(12px, 1.2vw, 15px); margin: 4px 6px 4px 0; }
-  .tag.g { background: #1f5e3f; color: #e6ffef; }
-  .tag.w { background: #6b5310; color: #fff6dc; }
-
-  table.tbl { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  .tbl th, .tbl td { border: 1px solid var(--border); padding: 8px 11px; text-align: left;
-    font-size: clamp(11px, 1.15vw, 16px); color: #c7cdec; line-height: 1.4; vertical-align: top; }
-  .tbl th { background: var(--accent-deep); color: #efe9ff; }
-  .tbl td strong { color: var(--ink); }
-  .tbl tr:nth-child(even) td { background: rgba(255,255,255,.02); }
-  .tbl .hi td { background: rgba(167,139,250,.12); }
-  .tbl .hi td strong { color: var(--accent); }
-
-  .flow { display: flex; align-items: stretch; gap: 10px; margin-top: 26px; flex-wrap: wrap; }
-  .flow .step { flex: 1 1 0; min-width: 130px; background: var(--card); border: 1px solid var(--accent-deep);
-    border-radius: 10px; padding: 14px; font-size: clamp(12px, 1.3vw, 17px); color: #d5d9f2;
-    display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.4; }
-  .flow .step.last { border-color: var(--accent); color: var(--ink); font-weight: 600; }
-  .flow .arr { color: var(--accent); font-size: clamp(18px, 2vw, 26px); font-weight: 700;
-    display: flex; align-items: center; }
-
-  ul.refs { list-style: none; margin-top: 6px; columns: 2; column-gap: 40px; }
-  ul.refs li { position: relative; padding: 4px 0 4px 20px; break-inside: avoid;
-    font-size: clamp(10px, 1.05vw, 14px); line-height: 1.4; color: #c7cdec; }
-  ul.refs li::before { content: "▪"; position: absolute; left: 2px; color: var(--accent); }
-  ul.refs li strong { color: var(--ink); }
-  ul.refs li em { color: var(--muted); font-style: normal; }
-
-  .note { display: none; }
-  #notesPanel { display: none; position: fixed; bottom: 64px; left: 50%; transform: translateX(-50%);
-    width: min(92vw, 940px); background: var(--panel); border: 1px solid var(--accent-deep);
-    border-radius: 12px; padding: 14px 18px; z-index: 11;
-    font-size: clamp(13px, 1.3vw, 16px); line-height: 1.6; color: var(--ink); box-shadow: 0 8px 30px rgba(0,0,0,.5); }
-  #notesPanel .note-title { color: var(--accent); font-weight: 700; font-size: 12px;
-    letter-spacing: .14em; text-transform: uppercase; margin-bottom: 6px; }
-
-  .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); width: 0%;
-    transition: width .3s ease; z-index: 10; }
-  .counter { position: fixed; bottom: 18px; right: 24px; color: var(--muted); font-size: 14px;
-    z-index: 10; font-variant-numeric: tabular-nums; }
-  .navhint { position: fixed; bottom: 18px; left: 24px; color: var(--muted); font-size: 13px; z-index: 10; opacity: .8; }
-  .navbtns { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 10; }
-  .navbtns button { background: var(--panel); color: var(--ink); border: 1px solid var(--border);
-    border-radius: 10px; padding: 8px 18px; font-size: 16px; cursor: pointer; }
-  .navbtns button:hover, .navbtns button.on { border-color: var(--accent); color: var(--accent); }
-
-  .titlewrap { max-width: 74vw; }
-  .logo-row { display: flex; gap: 12px; margin-bottom: 3vh; flex-wrap: wrap; }
-  .q-badge { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
-    border-radius: 50%; background: var(--accent-deep); color: #efe9ff; font-weight: 700; margin-right: 12px; flex: 0 0 auto; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Corrected Malay fact-checking dataset literature review for Veritaserum Team MCS13.">
+  <title>Malay Fact-Checking Data — Corrected Literature Review | Veritaserum MCS13</title>
+  <style>
+    :root {
+      --bg: #0d0e1a;
+      --panel: #171a2e;
+      --panel-2: #1a1e36;
+      --ink: #eef0fa;
+      --muted: #aab0cf;
+      --purple: #a78bfa;
+      --purple-deep: #4c3a91;
+      --green: #35e887;
+      --amber: #facc33;
+      --border: #30365f;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 82% 12%, rgba(76,58,145,.18), transparent 30%),
+        var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+    }
+    a { color: var(--purple); }
+    button, a.download { font: inherit; }
+    .progress {
+      position: fixed; inset: 0 auto auto 0; z-index: 20;
+      width: 0; height: 4px; background: var(--purple);
+      transition: width .25s ease;
+    }
+    .deck { position: relative; height: 100%; }
+    .slide {
+      position: absolute; inset: 0; display: none;
+      flex-direction: column; justify-content: center;
+      padding: clamp(36px, 5vh, 66px) clamp(34px, 6.4vw, 96px) 72px;
+      opacity: 0; transform: translateY(10px);
+    }
+    .slide.active {
+      display: flex; opacity: 1; transform: translateY(0);
+      animation: enter .28s ease-out;
+    }
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .kicker {
+      margin-bottom: 14px; color: var(--purple);
+      font-size: clamp(12px, 1.1vw, 16px); font-weight: 800;
+      letter-spacing: .12em; text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 980px; margin-bottom: 16px;
+      font-size: clamp(40px, 5.3vw, 76px); line-height: 1.02;
+      letter-spacing: -.035em;
+    }
+    h2 {
+      margin-bottom: 18px;
+      font-size: clamp(30px, 3.7vw, 52px); line-height: 1.08;
+      letter-spacing: -.025em;
+    }
+    h3 { margin-bottom: 10px; font-size: clamp(18px, 1.7vw, 25px); }
+    .lead {
+      max-width: 1100px; margin-bottom: 24px; color: var(--muted);
+      font-size: clamp(16px, 1.65vw, 23px); line-height: 1.45;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 30px; }
+    .chip, .status {
+      display: inline-flex; align-items: center; width: max-content;
+      border-radius: 999px; padding: 7px 14px;
+      background: var(--purple-deep); color: #f3efff;
+      font-size: clamp(12px, 1vw, 14px); font-weight: 700;
+    }
+    .status.good { background: #1e6541; }
+    .status.warn { background: #72580d; color: #fff3c4; }
+    .title-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+    .download {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--purple); border-radius: 10px;
+      padding: 10px 16px; text-decoration: none; font-weight: 700;
+      background: rgba(167,139,250,.08);
+    }
+    .grid { display: grid; gap: 18px; }
+    .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card {
+      min-width: 0; border: 1px solid var(--border); border-radius: 14px;
+      padding: clamp(16px, 1.7vw, 24px); background: var(--panel-2);
+    }
+    .card.green { border-color: var(--green); }
+    .card.amber { border-color: var(--amber); }
+    .card p, .card li { color: #d7dbef; line-height: 1.45; }
+    .metric { display: flex; flex-direction: column; min-height: 185px; justify-content: center; }
+    .number {
+      color: var(--purple); font-size: clamp(48px, 6vw, 86px);
+      font-weight: 850; line-height: .95; letter-spacing: -.05em;
+    }
+    .number.green { color: var(--green); }
+    .number.amber { color: var(--amber); }
+    .metric strong { margin-top: 12px; font-size: clamp(17px, 1.5vw, 22px); }
+    .metric small { margin-top: 6px; color: var(--muted); font-size: clamp(13px, 1.15vw, 16px); line-height: 1.4; }
+    .takeaway {
+      margin-top: 22px; border-left: 4px solid var(--purple);
+      padding: 12px 16px; background: rgba(167,139,250,.08);
+      color: #e7e0ff; font-size: clamp(15px, 1.4vw, 20px); line-height: 1.4;
+    }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; background: rgba(23,26,46,.72); }
+    th, td {
+      padding: clamp(8px, 1vw, 13px); border-bottom: 1px solid var(--border);
+      text-align: left; vertical-align: top; line-height: 1.35;
+      font-size: clamp(11px, 1.08vw, 15px);
+    }
+    th { background: var(--purple-deep); color: #f6f1ff; }
+    tr:last-child td { border-bottom: 0; }
+    td { color: #cfd4ea; }
+    td strong { color: var(--ink); }
+    .yes { color: var(--green); font-weight: 800; }
+    .no { color: var(--amber); font-weight: 800; }
+    .split {
+      display: grid; grid-template-columns: .86fr 1.14fr; gap: 24px; align-items: stretch;
+    }
+    .checklist { margin: 4px 0 0; padding: 0; list-style: none; }
+    .checklist li {
+      position: relative; padding: 9px 0 9px 28px;
+      color: #d8dcef; font-size: clamp(14px, 1.35vw, 19px); line-height: 1.38;
+    }
+    .checklist li::before {
+      content: "•"; position: absolute; left: 5px; color: var(--purple); font-weight: 900;
+    }
+    .checklist.tight li { padding-top: 6px; padding-bottom: 6px; font-size: clamp(13px, 1.12vw, 16px); }
+    .gap-stack { display: grid; gap: 12px; }
+    .gap-row {
+      display: grid; grid-template-columns: 1fr 52px 1fr; gap: 10px; align-items: center;
+    }
+    .gap-row > div {
+      border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px;
+      background: var(--panel-2); line-height: 1.35;
+    }
+    .gap-row .arrow { border: 0; padding: 0; background: transparent; color: var(--purple); text-align: center; font-size: 28px; }
+    .path {
+      display: flex; flex-direction: column; min-height: 310px;
+    }
+    .path h3 { margin: 26px 0 14px; font-size: clamp(24px, 2.5vw, 35px); }
+    .path .checklist { margin-top: 4px; }
+    .conclusion {
+      margin-top: 22px; border: 1px solid var(--purple-deep); border-radius: 12px;
+      padding: 14px 20px; background: rgba(167,139,250,.06);
+      color: var(--purple); text-align: center; font-size: clamp(15px, 1.35vw, 19px); font-weight: 800;
+    }
+    .flow {
+      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 8px 0 24px;
+    }
+    .step {
+      position: relative; min-height: 150px; border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 16px; background: var(--panel-2);
+    }
+    .step:last-child { border-color: var(--green); }
+    .step:not(:last-child)::after {
+      content: "→"; position: absolute; top: 50%; right: -17px; z-index: 2;
+      color: var(--purple); font-size: 24px; transform: translateY(-50%);
+    }
+    .step b {
+      display: grid; place-items: center; width: 34px; height: 34px; margin-bottom: 14px;
+      border-radius: 50%; background: var(--purple-deep);
+    }
+    .step strong { display: block; margin-bottom: 9px; font-size: clamp(17px, 1.5vw, 22px); }
+    .step span { color: var(--muted); font-size: clamp(12px, 1.05vw, 15px); line-height: 1.35; }
+    .gates { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .gate {
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--panel);
+      color: var(--muted); text-align: center; font-size: clamp(12px, 1vw, 14px);
+    }
+    .gate strong { display: block; margin-top: 7px; color: var(--green); font-size: clamp(18px, 1.7vw, 24px); }
+    .gate:last-child strong { color: var(--amber); }
+    .decision { display: grid; grid-template-columns: 1fr 1fr 1.1fr; gap: 20px; margin: 8px 0 30px; }
+    .decision .card { min-height: 142px; display: flex; flex-direction: column; justify-content: center; }
+    .decision .card small { margin-bottom: 15px; color: var(--amber); font-weight: 800; }
+    .decision .card.green small { color: var(--green); }
+    .refs { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .refs .card { padding: 18px 22px; }
+    .refs ul { margin: 0; padding-left: 18px; }
+    .refs li { margin: 8px 0; color: #d2d6ea; font-size: clamp(11px, 1vw, 14px); line-height: 1.35; }
+    .source-line {
+      margin-top: 16px; color: var(--muted); font-size: clamp(10px, .9vw, 13px); line-height: 1.4;
+    }
+    .controls {
+      position: fixed; z-index: 30; right: 22px; bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .controls button {
+      width: 40px; height: 36px; border: 1px solid var(--border); border-radius: 9px;
+      background: var(--panel); color: var(--ink); cursor: pointer;
+    }
+    .controls button:hover, .controls button:focus-visible { border-color: var(--purple); color: var(--purple); }
+    .counter { min-width: 54px; color: var(--muted); text-align: center; font-size: 13px; }
+    .hint {
+      position: fixed; z-index: 20; left: 22px; bottom: 22px;
+      color: var(--muted); font-size: 12px;
+    }
+    @media (max-width: 860px) {
+      body { overflow: auto; }
+      .deck { height: auto; }
+      .slide { position: relative; display: flex; min-height: 100vh; opacity: 1; transform: none; padding: 54px 24px 72px; }
+      .g2, .g3, .split, .decision, .refs { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .step:not(:last-child)::after { content: "↓"; top: auto; right: 50%; bottom: -24px; transform: translateX(50%); }
+      .gates { grid-template-columns: repeat(2, 1fr); }
+      .gap-row { grid-template-columns: 1fr; }
+      .gap-row .arrow { transform: rotate(90deg); }
+      .controls, .hint, .progress { display: none; }
+      .table-wrap { max-height: none; }
+    }
+    @media print {
+      body { overflow: visible; background: #fff; color: #111; }
+      .slide { position: relative; display: flex; min-height: 100vh; page-break-after: always; opacity: 1; transform: none; }
+      .controls, .hint, .progress { display: none; }
+    }
+  </style>
 </head>
 <body>
-<div class="progress" id="progress"></div>
-<div class="deck" id="deck">
-
-  <!-- 1 · Title -->
-  <section class="slide active">
-    <div class="titlewrap">
-      <div class="logo-row">
-        <span class="tag">Veritaserum</span><span class="tag">Team MCS13</span>
-        <span class="tag">FIT3161/3162 · Monash</span>
+  <div class="progress" id="progress"></div>
+  <main class="deck" id="deck">
+    <section class="slide active">
+      <div class="chips">
+        <span class="chip">Veritaserum</span>
+        <span class="chip">Team MCS13</span>
+        <span class="chip">Corrected review · 20 July 2026</span>
       </div>
-      <div class="kicker">Weekly Research Review</div>
-      <h1>Fact-Checking Datasets:<br>Resources, Gaps &amp; Language Opportunities</h1>
-      <p class="sub">A literature review of what exists for claim verification, where the gaps are, and which underrepresented language we should build for.</p>
-      <p class="sub" style="margin-top:24px">Supervisor: Dr Abdul Rafae Khan &nbsp;·&nbsp; July 2026</p>
-    </div>
-    <aside class="note">
-      This deck condenses the written literature review. Three questions: what datasets exist and what gaps they leave; which English domains are easy to collect; and which underrepresented language - Malay in particular - we should target.<br>
-      Keep it to ~12 minutes; the written doc has the full detail and citations.
-    </aside>
-  </section>
-
-  <!-- 2 · Agenda / three questions -->
-  <section class="slide">
-    <div class="kicker">What this review answers</div>
-    <h2>Three questions for this milestone</h2>
-    <div class="grid g3">
-      <div class="card"><h3><span class="q-badge">1</span>Datasets &amp; gaps</h3><p>What claim-verification datasets exist today, and which gaps could motivate building a <strong>new</strong> one?</p></div>
-      <div class="card"><h3><span class="q-badge">2</span>Easy English domains</h3><p>Where are claims and supporting evidence <strong>easy to collect and annotate</strong>?</p></div>
-      <div class="card"><h3><span class="q-badge">3</span>Underrepresented languages</h3><p>Which SEA language - <strong>Malay?</strong> - is viable by datasets, models, and sources?</p></div>
-    </div>
-    <p class="sub wide">The three criteria for question 3, from the brief: existing datasets · availability of AI models · availability of claim and evidence sources.</p>
-    <aside class="note">
-      Walk through the three questions as the roadmap. Each becomes a section. Emphasise that Q3 has three sub-criteria we'll score every language against.
-    </aside>
-  </section>
-
-  <!-- 3 · Pipeline framing -->
-  <section class="slide">
-    <div class="kicker">Part 1 · The task</div>
-    <h2>Automated fact-checking, decomposed</h2>
-    <p class="sub wide">Datasets differ by where they sit in this pipeline - and whether their claims are naturally occurring or annotator-written (Guo, Schlichtkrull &amp; Vlachos, 2022).</p>
-    <div class="flow">
-      <div class="step">Claim<br>detection</div>
-      <div class="arr">→</div>
-      <div class="step">Evidence<br>retrieval</div>
-      <div class="arr">→</div>
-      <div class="step">Verdict<br>prediction</div>
-      <div class="arr">→</div>
-      <div class="step last">Explanation /<br>justification</div>
-    </div>
-    <p class="sub wide" style="margin-top:30px">Our own <strong>Veritaserum</strong> backend already implements retrieval + document-level verdicts - so dataset choice directly shapes what we can evaluate.</p>
-    <aside class="note">
-      This framing matters because the "gaps" later map onto stages: most datasets over-serve verdict prediction on isolated sentences and under-serve retrieval realism and document-level judgement.
-    </aside>
-  </section>
-
-  <!-- 4 · Wikipedia-grounded -->
-  <section class="slide">
-    <div class="kicker">Part 1 · Dataset family 1</div>
-    <h2>Wikipedia-grounded - large, clean, but artificial</h2>
-    <table class="tbl">
-      <tr><th>Dataset</th><th>Year</th><th>Size</th><th>Evidence</th><th>Focus</th></tr>
-      <tr><td><strong>FEVER</strong></td><td>2018</td><td>185k</td><td>Wikipedia sentences</td><td>The field's default benchmark; claims written by annotators</td></tr>
-      <tr><td><strong>FEVEROUS</strong></td><td>2021</td><td>87k</td><td>Text + tables/lists</td><td>Adds structured evidence</td></tr>
-      <tr><td><strong>HoVer</strong></td><td>2020</td><td>26k</td><td>Multi-hop (≤4 hops)</td><td>Multi-document reasoning</td></tr>
-      <tr><td><strong>EX-FEVER</strong></td><td>2024</td><td>60k</td><td>Multi-hop + explanations</td><td>Explainable verification</td></tr>
-      <tr><td><strong>AmbiFC</strong></td><td>2024</td><td>10k</td><td>50k passages</td><td>Ambiguity-aware soft labels</td></tr>
-    </table>
-    <p class="sub wide">Scale and clean labels - but claims are <strong>synthetic</strong> (annotator-written from Wikipedia), carrying lexical artifacts models exploit.</p>
-    <aside class="note">
-      FEVER is the anchor everyone benchmarks against. The trade-off: cheap and huge, but not how misinformation actually appears in the wild.
-    </aside>
-  </section>
-
-  <!-- 5 · Real-world -->
-  <section class="slide">
-    <div class="kicker">Part 1 · Dataset family 2</div>
-    <h2>Real-world claims - naturally occurring, messier</h2>
-    <table class="tbl">
-      <tr><th>Dataset</th><th>Year</th><th>Size</th><th>Evidence</th><th>Notes</th></tr>
-      <tr><td><strong>LIAR</strong></td><td>2017</td><td>12.8k</td><td>Metadata only</td><td>Unsolvable without external evidence</td></tr>
-      <tr class="hi"><td><strong>MultiFC</strong></td><td>2019</td><td>34.9k</td><td>Search snippets</td><td>Our current ingestion target; suffers link rot</td></tr>
-      <tr><td><strong>X-Fact</strong></td><td>2021</td><td>31k</td><td>Search snippets</td><td>25 languages - but no Malay/Thai/Vietnamese/Filipino</td></tr>
-      <tr class="hi"><td><strong>AVeriTeC</strong></td><td>2023</td><td>4.6k</td><td>Open web, QA-decomposed, <strong>temporally filtered</strong></td><td>Gold standard protocol; our long-term target</td></tr>
-      <tr><td><strong>WatClaimCheck</strong></td><td>2022</td><td>34k</td><td>Premise articles</td><td>Fact-check-derived</td></tr>
-    </table>
-    <p class="sub wide">Highlighted: the two datasets already central to our backend. AVeriTeC is the only one that stops evidence leaking from the future.</p>
-    <aside class="note">
-      Tie back to the repo: MultiFC is the short-term loader target, AVeriTeC the long-term aspiration. AVeriTeC's temporal filtering is the feature we most want to imitate.
-    </aside>
-  </section>
-
-  <!-- 6 · Domain-specific + multilingual -->
-  <section class="slide">
-    <div class="kicker">Part 1 · Families 3 &amp; 4</div>
-    <h2>Domain-specific &amp; multilingual</h2>
-    <div class="grid g2">
-      <div class="card">
-        <h3>Domain-specific</h3>
-        <ul>
-          <li><strong>SciFact</strong> - 1.4k expert claims vs. paper abstracts</li>
-          <li><strong>PubHealth</strong> - 11.8k health claims + explanations</li>
-          <li><strong>Climate-FEVER</strong> - 1.5k real climate claims</li>
-          <li><strong>QuanTemp</strong> - 15.5k numerical/temporal; ~58% false, where models are weakest</li>
-          <li><strong>CheckThat!</strong> - yearly shared tasks (2018–2025)</li>
-        </ul>
+      <div class="kicker">Weekly literature review</div>
+      <h1>Malay Fact-Checking Data</h1>
+      <p class="lead">What exists, what is still missing, and the permission-gated pilot that can turn a literature gap into this week’s measurable deliverable.</p>
+      <div class="title-actions">
+        <a class="download" href="https://avprogramm.github.io/veritaserum-dataset-deck/Veritaserum-Malay-Dataset-Literature-Review-20-July-2026.pptx">Download PowerPoint</a>
       </div>
-      <div class="card warn">
-        <h3>Multilingual &amp; Southeast Asian</h3>
-        <ul>
-          <li><strong>X-Fact</strong> - 25 langs, incl. Indonesian; <em>no Malay/Thai/Vi/Fil</em></li>
-          <li><strong>MultiClaim / SemEval-2025</strong> - incl. Malay, Thai - <em>retrieval only</em></li>
-          <li><strong>ViFactCheck</strong> - Vietnamese, AAAI 2025; 7.2k pairs, κ=0.83</li>
-          <li><strong>MalCov</strong> - Malay, COVID <em>classification only</em></li>
-          <li>Indonesian hoax corpora - small, no evidence grounding</li>
-        </ul>
+      <p class="source-line">Prepared for Dr Abdul Rafae Khan and Team MCS13 · Companion to the updated Meeting Protocol document</p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Corrected answer</div>
+      <h2>MalCov is not the only Malay misinformation resource</h2>
+      <p class="lead">The earlier uniqueness claim was too strong. The real opportunity is narrower—and more useful.</p>
+      <div class="grid g3">
+        <article class="card metric amber">
+          <span class="number amber">215</span>
+          <strong>MalCov items</strong>
+          <small>171 fake · 44 true · Malay COVID classification</small>
+        </article>
+        <article class="card metric">
+          <span class="number">3,068</span>
+          <strong>Fake.my-COVID19 tweets</strong>
+          <small>1,422 fake · 1,646 real · separate Malay–English dataset</small>
+        </article>
+        <article class="card metric green">
+          <span class="number green">0</span>
+          <strong>open Malay verification benchmarks found</strong>
+          <small>combining real claims, independent evidence and temporal controls</small>
+        </article>
       </div>
-    </div>
-    <p class="sub wide">Note the pattern on the right: SEA languages appear only in <strong>retrieval</strong> or <strong>classification</strong> sets - not evidence-grounded verification.</p>
-    <aside class="note">
-      QuanTemp is the pointer to the numerical-claim gap. The right-hand card sets up Part 3: the SEA verification vacuum, with ViFactCheck as the lone exception.
-    </aside>
-  </section>
+      <div class="takeaway"><strong>Decision-relevant gap:</strong> classification and retrieval resources exist; an open, evidence-grounded Malay verification benchmark was not located in this scoped review.</div>
+    </section>
 
-  <!-- 7 · Gaps -->
-  <section class="slide">
-    <div class="kicker">Part 1 · Why build something new</div>
-    <h2>Gaps that could motivate a new dataset</h2>
-    <div class="grid g3">
-      <div class="card win"><h3>① Temporal leakage</h3><p>Most natural-claim sets include evidence published <em>after</em> the claim - models look up verdicts instead of verifying. Only AVeriTeC filters it.</p></div>
-      <div class="card win"><h3>② Document-level scarcity</h3><p>Almost everything verifies isolated <em>sentences</em>. No public corpus labels whole documents - we had to hand-label ours.</p></div>
-      <div class="card win"><h3>③ Thin SEA coverage</h3><p>Verification data clusters in high-resource languages; Southeast Asia has only Vietnamese.</p></div>
-      <div class="card"><h3>④ Label chaos</h3><p>MultiFC ≈150 rating schemes; X-Fact collapses to 7. Mappings are lossy.</p></div>
-      <div class="card"><h3>⑤ Numerical claims</h3><p>QuanTemp shows models fail exactly where misinformation concentrates.</p></div>
-      <div class="card"><h3>⑥ Static &amp; stale</h3><p>Links rot; claims age. Dynamic benchmarks only now emerging.</p></div>
-    </div>
-    <p class="sub wide">The green three are our sweet spot - they can be attacked <strong>together</strong>. (Also: synthetic-claim bias, unannotated evidence quality.)</p>
-    <aside class="note">
-      Spend the most time here - this is the "why a new dataset" argument. The three highlighted gaps are the ones a single well-designed dataset can hit at once.
-    </aside>
-  </section>
-
-  <!-- 8 · Sweet spot statement -->
-  <section class="slide">
-    <div class="kicker">Part 1 · Conclusion</div>
-    <h2 style="margin-bottom:10px">The opening</h2>
-    <div class="bignum good">3 gaps, 1 dataset</div>
-    <p class="biglabel" style="max-width:56ch">A <strong style="color:var(--ink)">document-level, temporally filtered, evidence-grounded verification dataset in an underrepresented language</strong> addresses temporal leakage, document-level scarcity, and SEA coverage simultaneously - at a scale a student team can annotate.</p>
-    <aside class="note">
-      This is the thesis of the whole review. Everything in Parts 2 and 3 is about making this concrete: which domain, which language.
-    </aside>
-  </section>
-
-  <!-- 9 · English domains table -->
-  <section class="slide">
-    <div class="kicker">Part 2 · Easy English domains</div>
-    <h2>Where claims + evidence are easy to collect</h2>
-    <table class="tbl">
-      <tr><th>#</th><th>Domain</th><th>Claim source</th><th>Evidence source</th><th>Why easy</th></tr>
-      <tr class="hi"><td>1</td><td><strong>Political / general fact-checks</strong></td><td>ClaimReview markup (PolitiFact, Snopes, AAP, Full Fact)</td><td>Sources cited in the article</td><td>Professional labels already exist - harvesting is parsing</td></tr>
-      <tr><td>2</td><td>Public health</td><td>WHO/CDC mythbusters</td><td>WHO/CDC/PubMed</td><td>Authoritative single-source evidence</td></tr>
-      <tr class="hi"><td>3</td><td><strong>Statistics-backed claims</strong></td><td>Politician/sport/social quotes</td><td>ABS, World Bank, league stats</td><td>Verification is a lookup; near-objective labels</td></tr>
-      <tr><td>4</td><td>Science reporting</td><td>News about papers</td><td>The papers' abstracts</td><td>Clean claim–evidence pairing</td></tr>
-      <tr><td>5</td><td>Climate</td><td>Climate Feedback</td><td>IPCC reports (versioned)</td><td>Single canonical evidence corpus</td></tr>
-    </table>
-    <p class="sub wide">Ranked by claim abundance, evidence availability, annotation ease, and precedent.</p>
-    <aside class="note">
-      Rows 1 and 3 are highlighted because they pair best with our backend - ClaimReview gives labelled claims at scale, statistics give leak-proof primary evidence.
-    </aside>
-  </section>
-
-  <!-- 10 · English winners -->
-  <section class="slide">
-    <div class="kicker">Part 2 · The two winners</div>
-    <h2>Best effort-to-quality ratio</h2>
-    <div class="grid g2">
-      <div class="card win">
-        <h3>ClaimReview harvesting</h3>
-        <p>Google's <strong>ClaimReview</strong> structured markup exposes machine-readable claim + verdict + publisher across PolitiFact, Snopes, AAP FactCheck, Full Fact.</p>
-        <ul>
-          <li>Labels come free from professionals</li>
-          <li>Collection is a parsing job, not annotation</li>
-          <li><span class="tag w">watch</span>must exclude the fact-check itself (leakage)</li>
-        </ul>
+    <section class="slide">
+      <div class="kicker">Resource landscape</div>
+      <h2>Available resources solve adjacent tasks—not the full task</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Resource</th><th>Language / domain</th><th>Scale</th><th>Task</th><th>Independent evidence?</th></tr></thead>
+          <tbody>
+            <tr><td><strong>MalCov</strong></td><td>Malay · COVID</td><td>215 items</td><td>Binary fake-news classification</td><td class="no">No</td></tr>
+            <tr><td><strong>Fake.my-COVID19</strong></td><td>Malay–English · COVID tweets</td><td>3,068 tweets</td><td>Binary classification</td><td class="no">No</td></tr>
+            <tr><td><strong>Malaysian-Dataset fake news</strong></td><td>Malay news text</td><td>Positive / negative JSON files</td><td>Classification corpus</td><td class="no">No; provenance and licence need audit</td></tr>
+            <tr><td><strong>Mixed Malay–English COVID tweets</strong></td><td>Social media · COVID</td><td>108,246 tweets</td><td>Sentiment / language research</td><td class="no">No verdict target</td></tr>
+            <tr><td><strong>MultiClaim v2 / AMC-16K</strong></td><td>Malay included</td><td>Multilingual</td><td>Claim matching / retrieval</td><td class="no">No evidence-grounded verdict evaluation</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="card win">
-        <h3>Statistics-backed claims</h3>
-        <p>Quantitative claims (economy, sport, demographics) check against <strong>official structured data</strong> - ABS, World Bank, league tables.</p>
-        <ul>
-          <li>Verification is often a lookup</li>
-          <li>Labels near-objective; targets the numerical gap</li>
-          <li><span class="tag w">watch</span>claim phrasing vs. metric definition</li>
-        </ul>
+      <p class="source-line">Counts and task definitions checked against the cited papers and public repositories; access and non-use findings are scoped through 20 July 2026.</p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">The actual gap</div>
+      <h2>The missing benchmark joins four requirements</h2>
+      <p class="lead">Malay datasets cover pieces of the pipeline, but no open resource located in the review joins all four.</p>
+      <div class="gap-stack">
+        <div class="gap-row"><div><strong>Real-world Malay claims</strong><br><span class="yes">Available from public portals</span></div><div class="arrow">→</div><div><strong>Standardised verdicts</strong><br><span class="no">Mapping and adjudication required</span></div></div>
+        <div class="gap-row"><div><strong>Independent open-web evidence</strong><br><span class="yes">Retrievable in principle</span></div><div class="arrow">→</div><div><strong>Evidence relevance annotations</strong><br><span class="no">Not packaged in current Malay sets</span></div></div>
+        <div class="gap-row"><div><strong>Publication dates</strong><br><span class="yes">Often available</span></div><div class="arrow">→</div><div><strong>Temporal leakage controls</strong><br><span class="no">Must be designed into collection</span></div></div>
+        <div class="gap-row"><div><strong>Malay-capable model</strong><br><span class="yes">Plausible with Qwen3</span></div><div class="arrow">→</div><div><strong>Measured Malay benchmark</strong><br><span class="no">Still required</span></div></div>
       </div>
-    </div>
-    <aside class="note">
-      These two combine well: ClaimReview for volume of labelled claims, statistics for evidence that provably predates the claim.
-    </aside>
-  </section>
+      <div class="takeaway">This is a literature-audit inference, not a proof that no private or undiscovered dataset exists.</div>
+    </section>
 
-  <!-- 11 · SEA intro -->
-  <section class="slide">
-    <div class="kicker">Part 3 · Underrepresented languages</div>
-    <h2>Scoring Southeast Asia on three criteria</h2>
-    <div class="grid g3">
-      <div class="card"><h3>A · Datasets</h3><p>Does an evidence-grounded <strong>verification</strong> benchmark exist (not just classification or retrieval)?</p></div>
-      <div class="card"><h3>B · Models</h3><p>Are suitable <strong>AI models</strong> available - regional LLMs, encoders, toolkits?</p></div>
-      <div class="card"><h3>C · Sources</h3><p>Are there active <strong>claim + evidence sources</strong> - fact-check orgs, media, data portals?</p></div>
-    </div>
-    <p class="sub wide">Candidates assessed: Malay, Indonesian, Vietnamese, Thai, Filipino, and the low-resource trio (Burmese, Khmer, Lao).</p>
-    <aside class="note">
-      These three criteria come straight from the task brief. Every language on the next slides gets scored A/B/C.
-    </aside>
-  </section>
-
-  <!-- 12 · Malay deep dive -->
-  <section class="slide">
-    <div class="kicker">Part 3 · The lead candidate</div>
-    <h2>Malay - Bahasa Melayu (~30M+ speakers)</h2>
-    <div class="grid g3">
-      <div class="card win">
-        <h3>A · Datasets - wide open</h3>
-        <p>No evidence-grounded verification set exists. MalCov is COVID classification; Malay in MultiClaim (retrieval) &amp; AMC-16K (pairing) only. <strong>X-Fact skips Malay entirely.</strong></p>
+    <section class="slide">
+      <div class="kicker">Candidate claim sources</div>
+      <h2>Four portals are promising—but “public” does not mean reusable</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Source</th><th>What the review found</th><th>Potential role</th><th>Required next check</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Sebenarnya.my</strong></td><td>Partly used by MalCov and small COVID studies; broader archive remains underused</td><td>High-volume Malay claims across topics</td><td>Archive structure, terms, robots and permission</td></tr>
+            <tr><td><strong>MyCheck</strong></td><td>No public evidence-grounded Malay benchmark located using the portal</td><td>Professional claim wording and ratings</td><td>Written reuse permission; terms restrict commercial viewing</td></tr>
+            <tr><td><strong>JomCheck</strong></td><td>No public evidence-grounded benchmark located in the scoped search</td><td>Collaborative Malay / English fact checks</td><td>Coverage, metadata structure and permission</td></tr>
+            <tr><td><strong>AFP Malaysia</strong></td><td>Useful professional claim metadata; content reproduction is restricted without licence</td><td>Claim discovery, rating and reference links</td><td>Licence or URL / identifier-only release design</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="card">
-        <h3>B · Models - good</h3>
-        <p><strong>SEA-LION v4</strong> (Gemma-3-27B / Qwen-3-32B, open), <strong>MaLLaM</strong> (Malay-specific, self-hostable), the <strong>Malaya</strong> toolkit, plus XLM-R / mBERT.</p>
+      <p class="source-line">A fact-check page may supply a claim and published rating, but should not be reused as the model’s evidence document.</p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">Collection discipline</div>
+      <h2>The dataset starts with permission—not scraping</h2>
+      <div class="split">
+        <article class="card amber">
+          <h3>Before collection</h3>
+          <ul class="checklist">
+            <li>Review robots.txt and site terms</li>
+            <li>Confirm copyright and redistribution rights</li>
+            <li>Record Monash ethics and privacy decisions</li>
+            <li>Seek written permission where terms are restrictive</li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3>Leak-resistant annotation rules</h3>
+          <ul class="checklist tight">
+            <li>Use fact-check pages for claim wording, published ratings and discovery leads—not model evidence.</li>
+            <li>Prefer evidence that is independent and published before the claim.</li>
+            <li>Retain each portal’s original rating and document every mapping to Supported / Refuted / NEI.</li>
+            <li>If full text cannot be redistributed, publish identifiers, URLs, lawful excerpts and annotations.</li>
+            <li>Preserve dates, source authority, versions and reviewer decisions for every record.</li>
+          </ul>
+        </article>
       </div>
-      <div class="card">
-        <h3>C · Sources - strong</h3>
-        <p><strong>Sebenarnya.my</strong> (national portal since 2017), <strong>JomCheck</strong>, AFP Malaysia for claims; DOSM stats, Malay Wikipedia, media for evidence.</p>
+      <p class="source-line">Terms reviewed: MyCheck page terms · AFP Malaysia legal notice · AVeriTeC temporal-evidence principle</p>
+    </section>
+
+    <section class="slide">
+      <div class="kicker">System readiness</div>
+      <h2>Malay accuracy is plausible—but not yet demonstrated</h2>
+      <p class="lead">The repository contains two verification paths with very different language readiness.</p>
+      <div class="grid g2">
+        <article class="card green path">
+          <span class="status good">Pilot candidate</span>
+          <h3>/factcheck/document</h3>
+          <ul class="checklist">
+            <li>Whole-document Qwen3 classification</li>
+            <li>Tavily web evidence retrieval</li>
+            <li>No hard-coded language field</li>
+            <li>But benchmarks and query scaffolding are English</li>
+          </ul>
+        </article>
+        <article class="card amber path">
+          <span class="status warn">Needs adaptation</span>
+          <h3>/verify sentence path</h3>
+          <ul class="checklist">
+            <li>English spaCy sentence segmentation</li>
+            <li>English-oriented claim detector</li>
+            <li>Not suitable as the Malay annotation baseline</li>
+            <li>Requires Malay-specific validation or replacement</li>
+          </ul>
+        </article>
       </div>
-    </div>
-    <p class="sub wide">Bonus: high mutual intelligibility with Indonesian roughly <strong>doubles usable evidence</strong> and enables model transfer.</p>
-    <aside class="note">
-      The core of the recommendation. Malay is unique: a total dataset vacuum but everything else - models and sources - is in place. That combination is what makes it buildable.
-    </aside>
-  </section>
+      <div class="conclusion">Use the document endpoint for the pilot, and report measured performance—not assumed multilingual capability.</div>
+    </section>
 
-  <!-- 13 · Other candidates -->
-  <section class="slide">
-    <div class="kicker">Part 3 · The alternatives</div>
-    <h2>Other Southeast Asian candidates</h2>
-    <div class="grid g2">
-      <div class="card"><h3>Indonesian (~200M)</h3><p>Best-resourced (IndoBERT, NusaCrowd, MAFINDO/TurnBackHoax). But classification sets already exist and local NLP competition is strong - <em>less novel</em>.</p></div>
-      <div class="card warn"><h3>Vietnamese (~85M)</h3><p>ViFactCheck (AAAI 2025) <strong>already fills the gap</strong>. Mature PhoBERT models. Low novelty remaining.</p></div>
-      <div class="card"><h3>Thai (~60M) · Filipino (~80M)</h3><p>Both viable runners-up. Thai: script segmentation friction, no team reader. Filipino: Tsek.ph / VeraFiles active, heavy English code-switching.</p></div>
-      <div class="card"><h3>Burmese · Khmer · Lao</h3><p>Wide-open gap but under-resourced on models <em>and</em> sources - impractical on a student timeline.</p></div>
-    </div>
-    <aside class="note">
-      Vietnamese is the cautionary tale - it WAS the obvious target until Dec 2024. Indonesian is the strongest alternative but more crowded. The low-resource trio is high-impact, low-feasibility.
-    </aside>
-  </section>
+    <section class="slide">
+      <div class="kicker">Validation plan</div>
+      <h2>A 50-claim pilot makes “fairly accurate” measurable</h2>
+      <div class="flow">
+        <article class="step"><b>1</b><strong>Sample</strong><span>50 recent Malay claims across four sources</span></article>
+        <article class="step"><b>2</b><strong>Retrieve</strong><span>Top-3 independent evidence documents</span></article>
+        <article class="step"><b>3</b><strong>Review</strong><span>Two Malay reviewers plus adjudication</span></article>
+        <article class="step"><b>4</b><strong>Measure</strong><span>Verdicts, coverage, kappa, failures and latency</span></article>
+        <article class="step"><b>5</b><strong>Decide</strong><span>Go, revise or pivot—with evidence</span></article>
+      </div>
+      <div class="gates">
+        <div class="gate">Macro-F1<strong>≥ 0.75</strong></div>
+        <div class="gate">Evidence coverage@3<strong>≥ 0.80</strong></div>
+        <div class="gate">Cohen’s kappa<strong>≥ 0.60</strong></div>
+        <div class="gate">Review requirement<strong>2 Malay speakers</strong></div>
+      </div>
+      <p class="source-line">Provisional gate only; document-only parallel mode and SEA-LION can be compared if time permits.</p>
+    </section>
 
-  <!-- 14 · Matrix -->
-  <section class="slide">
-    <div class="kicker">Part 3 · Side by side</div>
-    <h2>Feasibility matrix</h2>
-    <table class="tbl">
-      <tr><th>Language</th><th>A · Dataset gap</th><th>B · Models</th><th>C · Sources</th><th>Feasibility</th></tr>
-      <tr class="hi"><td><strong>Malay</strong></td><td>Wide open</td><td>Good (SEA-LION, MaLLaM)</td><td>Strong (Sebenarnya.my, JomCheck)</td><td><strong>High</strong></td></tr>
-      <tr><td>Indonesian</td><td>Partial</td><td>Excellent</td><td>Excellent (MAFINDO)</td><td>High, less novel</td></tr>
-      <tr><td>Thai</td><td>Open</td><td>Good</td><td>Moderate</td><td>Medium</td></tr>
-      <tr><td>Filipino</td><td>Partial</td><td>Moderate</td><td>Good</td><td>Medium</td></tr>
-      <tr><td>Vietnamese</td><td>Closed</td><td>Good</td><td>Good</td><td>Low novelty</td></tr>
-      <tr><td>Burmese/Khmer/Lao</td><td>Wide open</td><td>Poor</td><td>Weak</td><td>Low</td></tr>
-    </table>
-    <aside class="note">
-      One glance sums up Part 3. Malay is the only row that is "wide open" on datasets AND green on both models and sources.
-    </aside>
-  </section>
+    <section class="slide">
+      <div class="kicker">Recommendation</div>
+      <h2>Proceed with Malay—conditionally</h2>
+      <p class="lead">The evidence-grounded gap is real, the sources are promising, and the existing document pipeline can support a pilot. Scaling depends on two gates.</p>
+      <div class="decision">
+        <article class="card amber"><small>Gate 1</small><h3>Source permission</h3></article>
+        <article class="card amber"><small>Gate 2</small><h3>Two Malay reviewers</h3></article>
+        <article class="card green"><small>If both pass</small><h3>Build the 50-claim pilot</h3></article>
+      </div>
+      <h3 style="color:var(--purple)">Deliver before the next discussion</h3>
+      <ul class="checklist tight">
+        <li>Source feasibility ledger: permission, terms, robots, structure and usable claim count</li>
+        <li>Internal 50-claim pilot with auditable provenance and no fact-check-page evidence leakage</li>
+        <li>Malay system report: macro-F1, evidence coverage, kappa, failures, latency and representative errors</li>
+        <li>One-page annotation guide and a go / revise / pivot decision</li>
+      </ul>
+    </section>
 
-  <!-- 15 · Recommendation -->
-  <section class="slide">
-    <div class="kicker">Recommendation</div>
-    <h2 class="plain" style="margin-bottom:10px"></h2>
-    <div class="bignum">Build for Malay</div>
-    <p class="biglabel" style="max-width:58ch">The only major SEA language with <strong style="color:var(--ink)">zero evidence-grounded verification data</strong>, yet with government-backed and independent fact-checkers to harvest, open regional LLMs for baselines, and Indonesian adjacency for transfer. ViFactCheck proves the recipe (~7k pairs, κ≈0.83, top-venue) is student-scale.</p>
-    <aside class="note">
-      State it plainly. If asked "why not Indonesian" - more prior art, more competition. "Why not Vietnamese" - already done. Malay is the open goal.
-    </aside>
-  </section>
+    <section class="slide">
+      <div class="kicker">Primary sources</div>
+      <h2>References used for the corrected review</h2>
+      <div class="refs">
+        <article class="card">
+          <h3 style="color:var(--purple)">Datasets and papers</h3>
+          <ul>
+            <li><a href="https://doi.org/10.1109/IVIT55443.2022.10033374">MalCov</a></li>
+            <li><a href="https://doi.org/10.18080/jtde.v11n3.789">Fake.my-COVID19 paper</a> · <a href="https://github.com/z3fei/Malaysia-COVID-19-Tweet-ID/tree/main/Fake.my-COVID19">repository</a></li>
+            <li><a href="https://malaysian-dataset.readthedocs.io/en/latest/news.html">Malaysian-Dataset news files</a></li>
+            <li><a href="https://doi.org/10.3390/bdcc7020061">Mixed Malay–English COVID tweets</a></li>
+            <li><a href="https://doi.org/10.5281/zenodo.15413169">MultiClaim v2</a></li>
+          </ul>
+        </article>
+        <article class="card">
+          <h3 style="color:var(--purple)">Candidate source archives</h3>
+          <ul>
+            <li><a href="https://sebenarnya.my/">Sebenarnya.my</a></li>
+            <li><a href="https://www.mycheck.my/operation">MyCheck operations</a> · <a href="https://www.mycheck.my/page-terms">terms</a></li>
+            <li><a href="https://www.jomcheck.org/">JomCheck</a></li>
+            <li><a href="https://factcheck.afp.com/list/Malaysia">AFP Malaysia</a></li>
+          </ul>
+        </article>
+      </div>
+      <div class="takeaway">Full literature review: <strong>Meeting Protocol — Veritaserum — Weekly Deliverable 18 July 2026.docx</strong></div>
+      <p class="source-line">Public literature and repositories reviewed through 20 July 2026 · “not located” is deliberately narrower than “does not exist.”</p>
+    </section>
+  </main>
 
-  <!-- 16 · Proposed direction -->
-  <section class="slide">
-    <div class="kicker">Proposed direction · for discussion</div>
-    <h2>A bilingual Malay–English document-level dataset</h2>
-    <ul class="points">
-      <li><strong>Claims</strong> from Sebenarnya.my / JomCheck / AFP Malaysia; fact-check articles used for <strong>labels only</strong>, never as evidence.</li>
-      <li><strong>Evidence</strong> = open-web docs published <strong>before</strong> each claim (AVeriTeC protocol), retrieved via our Tavily pipeline, archived against link rot.</li>
-      <li><strong>Two granularities</strong>: per-claim (S/R/NEI) and per-document (mostly_supported / mostly_refuted / mixed / unverified) - the exact scheme our backend already uses.</li>
-      <li><strong>Baselines</strong>: SEA-LION v4 and Qwen3 8B through our existing <em>/factcheck/document</em> endpoint - a paper-shaped evaluation with no new infrastructure.</li>
-    </ul>
-    <p class="sub wide">Hits three documented gaps at once, and every component maps onto what this repo already has.</p>
-    <aside class="note">
-      This is the actionable ask. Note how each bullet reuses existing Veritaserum infrastructure - that's what makes it realistic for our timeline.
-    </aside>
-  </section>
+  <div class="hint">← → / Space to navigate · swipe on touch</div>
+  <nav class="controls" aria-label="Slide navigation">
+    <button id="prev" type="button" aria-label="Previous slide">←</button>
+    <span class="counter" id="counter" aria-live="polite">1 / 10</span>
+    <button id="next" type="button" aria-label="Next slide">→</button>
+  </nav>
 
-  <!-- 17 · Close -->
-  <section class="slide">
-    <div class="titlewrap">
-      <div class="kicker">Summary</div>
-      <h1>Malay, document-level, temporally clean</h1>
-      <p class="sub wide">A verification dataset that is realistic (no leakage), novel (document-level), and needed (SEA coverage) - buildable with the models, sources, and pipeline we already have. Full citations in the accompanying written review.</p>
-      <div style="margin-top:3vh"><span class="tag g">no temporal leakage</span><span class="tag g">document-level labels</span><span class="tag g">Malay / SEA</span><span class="tag">reuses Veritaserum</span></div>
-    </div>
-    <aside class="note">
-      Land the three-word summary: Malay, document-level, temporally clean. Then invite discussion on scope and annotation effort.
-    </aside>
-  </section>
+  <script>
+    (() => {
+      const slides = [...document.querySelectorAll(".slide")];
+      const progress = document.getElementById("progress");
+      const counter = document.getElementById("counter");
+      let current = 0;
+      let touchX = null;
 
-  <!-- 18 · References -->
-  <section class="slide">
-    <div class="kicker">References</div>
-    <h2>Sources behind these slides</h2>
-    <ul class="refs">
-      <li><strong>Guo, Schlichtkrull &amp; Vlachos (2022)</strong> - A Survey on Automated Fact-Checking <em>TACL</em></li>
-      <li><strong>FEVER</strong> (Thorne+ 2018) · <strong>FEVEROUS</strong> (Aly+ 2021) <em>fever.ai</em></li>
-      <li><strong>HoVer</strong> (Jiang+ 2020) · <strong>EX-FEVER</strong> (Ma+ 2024)</li>
-      <li><strong>AmbiFC</strong> (Glockner+ 2024) <em>TACL</em></li>
-      <li><strong>LIAR</strong> (Wang 2017) · <strong>MultiFC</strong> (Augenstein+ 2019)</li>
-      <li><strong>X-Fact</strong> (Gupta &amp; Srikumar 2021) <em>ACL</em></li>
-      <li><strong>AVeriTeC</strong> (Schlichtkrull+ 2023) · <strong>WatClaimCheck</strong> (2022)</li>
-      <li><strong>SciFact</strong> (Wadden+ 2020) · <strong>PubHealth</strong> (Kotonya &amp; Toni 2020)</li>
-      <li><strong>Climate-FEVER</strong> (2020) · <strong>QuanTemp</strong> (Venktesh+ 2024)</li>
-      <li><strong>CheckThat! 2025</strong> Task 3 <em>CLEF</em> · <strong>SemEval-2025 Task 7</strong> (MultiClaim)</li>
-      <li><strong>AMC-16K</strong> - multilingual PFCD (2025)</li>
-      <li><strong>CHEF</strong> (Hu+ 2022) · <strong>ViFactCheck</strong> (Hoa+ AAAI 2025)</li>
-      <li><strong>MalCov</strong> - Malay COVID fake news · <strong>FakeNewsFilipino</strong> (2019)</li>
-      <li><strong>NusaCrowd</strong> (2022) · <strong>SEA-LION</strong> (2025) · <strong>MaLLaM</strong> (Mesolitica)</li>
-      <li><strong>Malaya</strong> toolkit · <strong>ClaimReview</strong> markup <em>Google</em></li>
-      <li><strong>Sebenarnya.my</strong> · <strong>JomCheck</strong> · <strong>MAFINDO / TurnBackHoax</strong></li>
-      <li><strong>Schuldt (2021)</strong> - Governmental fact-checking in MY/SG/TH <em>SAGE</em></li>
-      <li><strong>VeriTaS</strong> (2026) - dynamic benchmark · full links in written review</li>
-    </ul>
-    <aside class="note">
-      Every claim on the slides traces to one of these. The written review has clickable links and full author/year detail.
-    </aside>
-  </section>
+      const show = (index, updateHash = true) => {
+        current = (index + slides.length) % slides.length;
+        slides.forEach((slide, i) => {
+          slide.classList.toggle("active", i === current);
+          slide.setAttribute("aria-hidden", i === current ? "false" : "true");
+        });
+        counter.textContent = `${current + 1} / ${slides.length}`;
+        progress.style.width = `${((current + 1) / slides.length) * 100}%`;
+        if (updateHash) history.replaceState(null, "", `#${current + 1}`);
+      };
 
-</div>
+      document.getElementById("prev").addEventListener("click", () => show(current - 1));
+      document.getElementById("next").addEventListener("click", () => show(current + 1));
+      document.addEventListener("keydown", (event) => {
+        if (["ArrowRight", "PageDown", " "].includes(event.key)) { event.preventDefault(); show(current + 1); }
+        if (["ArrowLeft", "PageUp"].includes(event.key)) { event.preventDefault(); show(current - 1); }
+        if (event.key === "Home") show(0);
+        if (event.key === "End") show(slides.length - 1);
+      });
+      document.addEventListener("touchstart", event => { touchX = event.changedTouches[0].clientX; }, { passive: true });
+      document.addEventListener("touchend", event => {
+        if (touchX === null) return;
+        const delta = event.changedTouches[0].clientX - touchX;
+        if (Math.abs(delta) > 50) show(current + (delta < 0 ? 1 : -1));
+        touchX = null;
+      }, { passive: true });
 
-<div id="notesPanel"><div class="note-title">Speaker notes</div><div id="notesBody"></div></div>
-
-<div class="counter" id="counter">1 / 18</div>
-<div class="navhint">← → arrow keys · space · N for notes</div>
-<div class="navbtns">
-  <button id="prev" aria-label="Previous slide">←</button>
-  <button id="notes" aria-label="Toggle speaker notes">Notes</button>
-  <button id="next" aria-label="Next slide">→</button>
-</div>
-
-<script>
-  const slides = Array.from(document.querySelectorAll(".slide"));
-  const notesPanel = document.getElementById("notesPanel");
-  const notesBody = document.getElementById("notesBody");
-  const notesBtn = document.getElementById("notes");
-  let idx = 0;
-  let notesOn = false;
-
-  function renderNotes() {
-    const note = slides[idx].querySelector(".note");
-    notesBody.innerHTML = note ? note.innerHTML : "No notes for this slide.";
-    notesPanel.style.display = notesOn ? "block" : "none";
-    notesBtn.classList.toggle("on", notesOn);
-  }
-  function show(n) {
-    idx = Math.max(0, Math.min(slides.length - 1, n));
-    slides.forEach((s, i) => s.classList.toggle("active", i === idx));
-    document.getElementById("counter").textContent = (idx + 1) + " / " + slides.length;
-    document.getElementById("progress").style.width = ((idx + 1) / slides.length * 100) + "%";
-    renderNotes();
-  }
-  function toggleNotes() { notesOn = !notesOn; renderNotes(); }
-
-  document.getElementById("next").addEventListener("click", () => show(idx + 1));
-  document.getElementById("prev").addEventListener("click", () => show(idx - 1));
-  notesBtn.addEventListener("click", toggleNotes);
-  document.addEventListener("keydown", (e) => {
-    if (["ArrowRight", " ", "PageDown"].includes(e.key)) { e.preventDefault(); show(idx + 1); }
-    if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); show(idx - 1); }
-    if (e.key === "Home") show(0);
-    if (e.key === "End") show(slides.length - 1);
-    if (e.key === "n" || e.key === "N") toggleNotes();
-  });
-  let x0 = null;
-  document.addEventListener("touchstart", e => x0 = e.touches[0].clientX);
-  document.addEventListener("touchend", e => {
-    if (x0 === null) return;
-    const dx = e.changedTouches[0].clientX - x0;
-    if (Math.abs(dx) > 50) show(idx + (dx < 0 ? 1 : -1));
-    x0 = null;
-  });
-  show(0);
-</script>
+      const requested = Number(location.hash.slice(1));
+      show(Number.isInteger(requested) && requested >= 1 && requested <= slides.length ? requested - 1 : 0, false);
+    })();
+  </script>
 </body>
 </html>
-
-<!-- deployment nudge -->
